@@ -21,12 +21,13 @@ module.exports = (grunt) ->
 
     options = @options()
     options.i18n = {} unless options.i18n
-    { locales, namespace, localeExtension, defaultExt } = options.i18n
+    { locales, namespace, localeExtension, defaultExt, addDirDest } = options.i18n
 
     # set default options
     namespace = '$i18n' unless namespace?
     localeExtension = no unless localeExtension?
     defaultExt = '.html' unless defaultExt?
+    addDirDest = yes unless addDirDest?
 
     if locales and locales.length
       jadeConfig = {}
@@ -71,7 +72,7 @@ module.exports = (grunt) ->
           if localeExtension
             addLocaleExtensionDest file, locale, defaultExt
           else
-            addLocaleDirnameDest file, locale, defaultExt
+            addLocaleDirnameDest file, locale, defaultExt, addDirDest
           file
     else
       grunt.log.ok 'Locales files not found. Nothing to translate'
@@ -115,17 +116,26 @@ module.exports = (grunt) ->
 
     file.dest = file.orig.dest = dest
 
-  addLocaleDirnameDest = (file, locale, outputExt) ->
+  addLocaleDirnameDest = (file, locale, outputExt, addDirDest) ->
     throw new TypeError 'Missing the template destination path' unless file.dest
 
     if ext = getExtension file.dest
-      dest = path.join path.dirname(file.dest), locale, path.basename(file.dest, ext) + setExtension ext
+      if addDirDest
+        dest = path.join path.dirname(file.dest), locale, path.basename(file.dest, ext) + setExtension ext
+      else
+        dest = path.join path.dirname(file.dest), path.basename(file.dest, ext) + setExtension ext
     else
       if /(\/|\*+)$/i.test file.dest
         base = file.dest.split('/')
-        dest = path.join path.join.apply(null, base.slice(0, -1)), locale, base.slice(-1).shift()
+        if addDirDest
+          dest = path.join path.join.apply(null, base.slice(0, -1)), locale, base.slice(-1).shift()
+        else
+          dest = path.join path.join.apply(null, base.slice(0, -1)), base.slice(-1).shift()
       else
-        dest = path.join file.dest, locale
+        if addDirDest
+          dest = path.join file.dest, locale
+        else
+          dest = path.join file.dest
 
     dest = dest.replace /\.jade$/i, setExtension outputExt
     file.dest = file.orig.dest = dest
